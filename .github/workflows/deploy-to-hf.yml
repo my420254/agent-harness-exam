@@ -47,6 +47,12 @@ jobs:
           if not repo_exists(repo_id, repo_type="space", token=token):
               create_repo(repo_id, repo_type="space", space_sdk="gradio", token=token)
 
+          # 强制 CPU 硬件（本 App 无需 GPU，LLM 走 DeepSeek 远程推理）
+          try:
+              api.request_space_hardware(repo_id, "cpu-basic", token=token, sleep_time=5)
+          except Exception as exc:  # noqa: BLE001
+              print(f"hardware note: {exc}")
+
           api.upload_folder(
               folder_path="/tmp/space",
               repo_id=repo_id,

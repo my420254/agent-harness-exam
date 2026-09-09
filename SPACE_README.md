@@ -6,6 +6,7 @@ colorTo: green
 sdk: gradio
 app_file: app.py
 pinned: false
+hardware: cpu-basic
 ---
 
 # 🤖 Minimal Agent Harness（从零实现的 ReAct Agent）
