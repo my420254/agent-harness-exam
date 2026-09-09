@@ -8,9 +8,29 @@ from __future__ import annotations
 
 import os
 import time
+from pathlib import Path
 from typing import Any
 
 import httpx
+
+
+def _load_dotenv() -> None:
+    """零依赖加载项目根目录 .env（已有环境变量时优先环境变量）。"""
+    path = Path(__file__).resolve().parent.parent / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
 
 
 class LLMError(RuntimeError):
