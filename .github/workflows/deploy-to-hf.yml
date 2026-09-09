@@ -47,19 +47,7 @@ jobs:
           if not repo_exists(repo_id, repo_type="space", token=token):
               create_repo(repo_id, repo_type="space", space_sdk="gradio", token=token)
 
-          # 打印当前 Space 运行时/硬件状态，便于诊断
-          try:
-              rt = api.get_space_runtime(repo_id, token=token)
-              print("SPACE RUNTIME:", rt)
-          except Exception as exc:  # noqa: BLE001
-              print(f"runtime note: {exc}")
-
-          # 强制 CPU 硬件（本 App 无需 GPU，LLM 走 DeepSeek 远程推理）
-          try:
-              api.request_space_hardware(repo_id, "cpu-basic", token=token, sleep_time=5)
-          except Exception as exc:  # noqa: BLE001
-              print(f"hardware note: {exc}")
-
+          # 上传代码（README 的 frontmatter 已声明 hardware: cpu-basic，HF 会据此切到 CPU）
           api.upload_folder(
               folder_path="/tmp/space",
               repo_id=repo_id,
@@ -75,5 +63,12 @@ jobs:
                       api.add_space_secret(repo_id, key, value, token=token)
                   except Exception as exc:  # noqa: BLE001
                       print(f"skip secret {key}: {exc}")
+
+          # 诊断：上传后打印 runtime，确认 hardware 已切换
+          try:
+              rt = api.get_space_runtime(repo_id, token=token)
+              print("AFTER UPLOAD runtime:", rt.stage, "| hardware:", rt.hardware, "| requested:", rt.requested_hardware)
+          except Exception as exc:  # noqa: BLE001
+              print("runtime note:", exc)
           print("DEPLOYED https://huggingface.co/spaces/" + repo_id)
           PY
