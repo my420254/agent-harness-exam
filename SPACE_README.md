@@ -1,3 +1,13 @@
+---
+title: Minimal Agent Harness
+emoji: 🤖
+colorFrom: indigo
+colorTo: teal
+sdk: gradio
+app_file: app.py
+pinned: false
+---
+
 # 🤖 Minimal Agent Harness（从零实现的 ReAct Agent）
 
 一个**不依赖 langgraph / openhands / openclaw** 的最小可用 Agent，核心 Runtime 主循环完全自研，只用一个 `httpx` 调真实 LLM API。
