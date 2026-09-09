@@ -85,6 +85,15 @@ def format_trace(trace: list[dict[str, Any]]) -> str:
 
 
 @spaces.GPU
+def gpu_healthcheck() -> str:
+    """ZeroGPU 占位函数。
+
+    本 App 无 GPU 计算（LLM 走 DeepSeek 远程推理），此函数仅用于满足 HF 对
+    ZeroGPU Space 的 `@spaces.GPU` 启动校验，运行时不会被调用。
+    """
+    return "ok"
+
+
 def run_agent_turn(user_input: str, session_id: str):
     sid = session_id.strip() or "user-a-window-1"
 
