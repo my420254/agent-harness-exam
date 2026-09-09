@@ -24,7 +24,10 @@ python main.py
 # 4. 跑双窗口演示（查天气记待办 / 写周报记待办，验证 session 隔离）
 python main.py --demo
 
-# 5. 跑测试
+# 5. 跑真实模型的错误处理演示（用刁难任务看 flash 犯错被接住）
+python demo_errors.py
+
+# 6. 跑测试
 pytest tests/ -q
 ```
 
