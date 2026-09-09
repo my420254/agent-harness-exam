@@ -31,6 +31,9 @@ jobs:
       - name: Create Space and upload
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_API_BASE: ${{ secrets.LLM_API_BASE }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: |
           pip install "huggingface_hub"
           python - <<'PY'
@@ -50,5 +53,14 @@ jobs:
               repo_type="space",
               token=token,
           )
+
+          # 把 DeepSeek 配置设为 Space Secret（面试官看不到，Demo 才能真正答话）
+          for key in ("LLM_API_KEY", "LLM_API_BASE", "LLM_MODEL"):
+              value = os.environ.get(key)
+              if value:
+                  try:
+                      api.add_space_secret(repo_id, key, value, token=token)
+                  except Exception as exc:  # noqa: BLE001
+                      print(f"skip secret {key}: {exc}")
           print("DEPLOYED https://huggingface.co/spaces/" + repo_id)
           PY
