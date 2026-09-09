@@ -46,7 +46,14 @@ jobs:
 
           # 该账号仅有 ZeroGPU（zero-a10g）免费额度，App 已用 @spaces.GPU 适配
           if not repo_exists(repo_id, repo_type="space", token=token):
-              create_repo(repo_id, repo_type="space", space_sdk="gradio", token=token)
+              try:
+                  create_repo(repo_id, repo_type="space", space_sdk="gradio", token=token)
+              except Exception as exc:  # noqa: BLE001
+                  print("CREATE ERROR:", repr(exc))
+                  server_msg = getattr(exc, "server_message", None)
+                  if server_msg:
+                      print("SERVER MESSAGE:", server_msg)
+                  raise
 
           api.upload_folder(
               folder_path="/tmp/space",
