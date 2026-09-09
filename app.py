@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import gradio as gr
+import spaces
 
 from agent.llm import LLMClient
 from agent.registry import ToolRegistry
@@ -83,6 +84,7 @@ def format_trace(trace: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+@spaces.GPU
 def run_agent_turn(user_input: str, session_id: str):
     sid = session_id.strip() or "user-a-window-1"
 

@@ -38,25 +38,15 @@ jobs:
           pip install "huggingface_hub"
           python - <<'PY'
           import os
-          import time
-          from huggingface_hub import HfApi, create_repo, delete_repo, repo_exists
+          from huggingface_hub import HfApi, create_repo, repo_exists
 
           token = os.environ["HF_TOKEN"]
           repo_id = "my420254/agent-harness-exam"
           api = HfApi(token=token)
 
-          # 删除旧的（卡在 zero-a10g 的）Space，重建为 CPU 硬件
-          if repo_exists(repo_id, repo_type="space", token=token):
-              delete_repo(repo_id, repo_type="space", token=token)
-              time.sleep(8)
-
-          create_repo(
-              repo_id,
-              repo_type="space",
-              space_sdk="gradio",
-              space_hardware="cpu-basic",
-              token=token,
-          )
+          # 该账号仅有 ZeroGPU（zero-a10g）免费额度，App 已用 @spaces.GPU 适配
+          if not repo_exists(repo_id, repo_type="space", token=token):
+              create_repo(repo_id, repo_type="space", space_sdk="gradio", token=token)
 
           api.upload_folder(
               folder_path="/tmp/space",
@@ -74,7 +64,7 @@ jobs:
                   except Exception as exc:  # noqa: BLE001
                       print(f"skip secret {key}: {exc}")
 
-          # 诊断：确认硬件已切到 CPU
+          # 诊断：确认硬件状态
           try:
               rt = api.get_space_runtime(repo_id, token=token)
               print("RUNTIME:", rt.stage, "| hardware:", rt.hardware, "| requested:", rt.requested_hardware)
