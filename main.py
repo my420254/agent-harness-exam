@@ -1,96 +1,73 @@
 from __future__ import annotations
 
-"""CLI 入口：交互式多窗口聊天，或跑一个双窗口演示。
+import sys
+from pathlib import Path
 
-用法：
-    python main.py               # 交互式 REPL，可切换 session
-    python main.py --demo        # 跑"窗口1查天气记待办 / 窗口2写周报记待办"演示
-"""
-
-import argparse
-import json
+# 确保在任意工作目录下执行 python main.py 均能稳定加载 agent 模块
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from agent.llm import LLMClient
 from agent.registry import ToolRegistry
 from agent.runtime import AgentRuntime
+from agent.session import SessionStore
 from agent.tools import build_tools
 
 
-def build_runtime() -> AgentRuntime:
+def main() -> None:
+    # 1. 组装工具注册中心
     registry = ToolRegistry()
     for tool in build_tools():
         registry.register(tool)
-    return AgentRuntime(llm=LLMClient(), registry=registry)
 
+    # 2. 初始化持久化仓库与运行时
+    store = SessionStore()
+    runtime = AgentRuntime(
+        llm=LLMClient(),
+        registry=registry,
+        store=store,
+        max_turns=8,
+        max_messages=20,
+    )
 
-def print_trace(trace: list[dict]) -> None:
-    for item in trace:
-        event = item["event"]
-        if event == "llm_call":
-            print(f"  · llm_call model={item.get('model')} latency={item.get('latency_ms')}ms")
-        elif event in {"tool_call", "tool_result", "tool_error"}:
-            print(f"  · {event} tool={item.get('tool')}")
-        elif event == "answer":
-            print(f"  · answer")
-        elif event in {"parse_error", "llm_error", "max_turns"}:
-            print(f"  · {event}")
+    session_id = "cli-session"
+    tools_list = ", ".join(registry.names())
 
+    print("=" * 60)
+    print(f"🤖 Agent CLI 控制台已就绪 (Session: {session_id})")
+    print(f"🛠️ 已挂载可用工具: [{tools_list}]")
+    print("💡 在终端直接输入内容与 Agent 对话，输入 'exit' 或 'quit' 退出。")
+    print("=" * 60)
 
-def demo() -> None:
-    runtime = build_runtime()
-    print("== 窗口 1：查天气 + 记待办 ==")
-    for text in ["帮我查一下北京天气，并把'带伞'记到待办里", "我之前让你记的待办是什么？"]:
-        print(f"> {text}")
-        result = runtime.run("user-a-window-1", text)
-        print(f"< {result['answer']}\n")
-
-    print("== 窗口 2：写周报 + 记待办（应独立于窗口 1）==")
-    for text in ["帮我把'写周报'记到待办，然后告诉我今天天气", "我之前让你记的待办是什么？"]:
-        print(f"> {text}")
-        result = runtime.run("user-a-window-2", text)
-        print(f"< {result['answer']}\n")
-
-    print("== 切回窗口 1 继续聊（待办应仍是窗口 1 自己的）==")
-    result = runtime.run("user-a-window-1", "再记一条'买牛奶'，然后列出我所有待办")
-    print(f"> 再记一条'买牛奶'，然后列出我所有待办")
-    print(f"< {result['answer']}\n")
-
-
-def repl() -> None:
-    runtime = build_runtime()
-    session_id = input("session id（默认 demo）: ").strip() or "demo"
-    print("输入问题回车即可；输入 /trace 查看上一次调用链；输入 /new 切窗口；/quit 退出。")
-    last_trace: list[dict] = []
     while True:
         try:
-            text = input(f"[{session_id}] > ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            break
-        if not text:
-            continue
-        if text == "/quit":
-            break
-        if text == "/new":
-            session_id = input("新 session id: ").strip() or "demo"
-            continue
-        if text == "/trace":
-            print_trace(last_trace)
-            continue
-        result = runtime.run(session_id, text)
-        last_trace = result["trace"]
-        print(result["answer"])
-        print_trace(result["trace"])
+            user_input = input("\nUser > ").strip()
+            if not user_input:
+                continue
+            if user_input.lower() in ("exit", "quit"):
+                print("\n会话结束，已安全退出。")
+                break
 
+            result = runtime.run(session_id, user_input)
+            print(f"\nAgent > {result['answer']}")
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--demo", action="store_true", help="跑双窗口演示")
-    args = parser.parse_args()
-    if args.demo:
-        demo()
-    else:
-        repl()
+            # 终端简明打印工具调用与关键事件流
+            for event in result.get("trace", []):
+                evt = event.get("event")
+                if evt == "tool_call":
+                    print(f"   🛠️ [调用工具] {event.get('tool')}({event.get('arguments')})")
+                elif evt == "tool_result":
+                    res_str = str(event.get("result"))[:80]
+                    print(f"   📥 [工具返回] {event.get('tool')} -> {res_str}")
+                elif evt == "tool_error":
+                    print(f"   ❌ [工具异常] {event.get('tool')}: {event.get('error')}")
+                elif evt == "parse_error":
+                    print(f"   ⚠️ [格式自愈] {event.get('error')}")
+
+        except (KeyboardInterrupt, EOFError):
+            print("\n检测到退出中断信号，已终止。")
+            break
 
 
 if __name__ == "__main__":
