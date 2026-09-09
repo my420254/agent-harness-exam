@@ -1,0 +1,54 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare Space files
+        run: |
+          mkdir -p /tmp/space
+          cp app.py /tmp/space/app.py
+          cp -r agent /tmp/space/agent
+          cp requirements.txt /tmp/space/requirements.txt
+          cp SPACE_README.md /tmp/space/README.md
+
+      - name: Create Space and upload
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install "huggingface_hub"
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi, create_repo, repo_exists
+
+          token = os.environ["HF_TOKEN"]
+          repo_id = "my420254/agent-harness-exam"
+          api = HfApi(token=token)
+
+          if not repo_exists(repo_id, repo_type="space", token=token):
+              create_repo(repo_id, repo_type="space", space_sdk="gradio", token=token)
+
+          api.upload_folder(
+              folder_path="/tmp/space",
+              repo_id=repo_id,
+              repo_type="space",
+              token=token,
+          )
+          print("DEPLOYED https://huggingface.co/spaces/" + repo_id)
+          PY

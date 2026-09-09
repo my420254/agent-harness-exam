@@ -3,6 +3,9 @@
 从零实现的最小可用 Agent：不依赖 langgraph / openhands / openclaw 等任何 agent 框架，
 核心 Runtime 主循环自行实现。核心运行只依赖 `httpx` 调真实 LLM API；可选 Gradio UI 依赖 `gradio`。
 
+> 🌐 **在线 Demo（Hugging Face Space）**：https://huggingface.co/spaces/my420254/agent-harness-exam
+> （点开即可在网页里直接体验多窗口隔离与异常自愈，无需本地环境）
+
 ## 一、运行方式
 
 ```bash
