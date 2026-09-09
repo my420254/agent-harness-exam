@@ -2,7 +2,7 @@
 title: Minimal Agent Harness
 emoji: 🤖
 colorFrom: indigo
-colorTo: teal
+colorTo: green
 sdk: gradio
 app_file: app.py
 pinned: false
